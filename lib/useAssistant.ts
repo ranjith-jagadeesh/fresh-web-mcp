@@ -101,15 +101,15 @@ export function useAssistant(
     } catch { /* storage unavailable — non-fatal */ }
   }, [messages]);
 
-  // Once we know the model is supported but not ready, download it in the
-  // background so it's prepared by the time the user opens the chat. We auto-try
-  // exactly once (autoStartedRef) so a failed attempt doesn't loop; the chat's
-  // open action can retry, doubling as the user gesture some browsers require.
+  // We deliberately do NOT download the model just because someone opened the
+  // site — a multi-GB background download without consent is a hostile surprise,
+  // and user control is the whole point of "on-device". So a "downloadable" model
+  // waits for an explicit click in the chat (see ConsentBody in AssistantChat).
+  // The one exception is "downloading": a download is already in flight (Chrome
+  // or another tab started it), so we attach once to surface progress and reuse
+  // the resulting session rather than leaving the user staring at a dead spinner.
   useEffect(() => {
-    if (
-      !autoStartedRef.current &&
-      (availability === "downloadable" || availability === "downloading")
-    ) {
+    if (!autoStartedRef.current && availability === "downloading") {
       autoStartedRef.current = true;
       startDownload();
     }
