@@ -4,22 +4,42 @@
 
 import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
+import * as $about from "./routes/about.tsx";
 import * as $api_joke from "./routes/api/joke.ts";
+import * as $cart from "./routes/cart.tsx";
+import * as $checkout from "./routes/checkout.tsx";
 import * as $greet_name_ from "./routes/greet/[name].tsx";
 import * as $index from "./routes/index.tsx";
-import * as $Counter from "./islands/Counter.tsx";
+import * as $orders from "./routes/orders.tsx";
+import * as $product_id_ from "./routes/product/[id].tsx";
+import * as $CartBadge from "./islands/CartBadge.tsx";
+import * as $CartPage from "./islands/CartPage.tsx";
+import * as $CheckoutPage from "./islands/CheckoutPage.tsx";
+import * as $OrdersPage from "./islands/OrdersPage.tsx";
+import * as $ProductDetailPage from "./islands/ProductDetailPage.tsx";
+import * as $ProductsPage from "./islands/ProductsPage.tsx";
 import type { Manifest } from "$fresh/server.ts";
 
 const manifest = {
   routes: {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
+    "./routes/about.tsx": $about,
     "./routes/api/joke.ts": $api_joke,
+    "./routes/cart.tsx": $cart,
+    "./routes/checkout.tsx": $checkout,
     "./routes/greet/[name].tsx": $greet_name_,
     "./routes/index.tsx": $index,
+    "./routes/orders.tsx": $orders,
+    "./routes/product/[id].tsx": $product_id_,
   },
   islands: {
-    "./islands/Counter.tsx": $Counter,
+    "./islands/CartBadge.tsx": $CartBadge,
+    "./islands/CartPage.tsx": $CartPage,
+    "./islands/CheckoutPage.tsx": $CheckoutPage,
+    "./islands/OrdersPage.tsx": $OrdersPage,
+    "./islands/ProductDetailPage.tsx": $ProductDetailPage,
+    "./islands/ProductsPage.tsx": $ProductsPage,
   },
   baseUrl: import.meta.url,
 } satisfies Manifest;
