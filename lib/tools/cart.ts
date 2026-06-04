@@ -9,8 +9,10 @@ export function addByNameTool(): WebMcpTool {
   return {
     name: "add_to_cart",
     description:
-      "Add a product to the cart by name. Use when the user wants to add, " +
-      "buy, or put an item in their cart.",
+      "Add one or more of a product to the cart by name. Use whenever the user " +
+      "wants to add, buy, purchase, get, or put an item in their cart — " +
+      "including with a quantity (e.g. \"add two hiking boots\" → " +
+      "add_to_cart(product=\"hiking boots\", quantity=2)).",
     inputSchema: {
       type: "object",
       properties: {

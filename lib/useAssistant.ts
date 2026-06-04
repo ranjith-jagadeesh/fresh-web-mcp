@@ -5,7 +5,8 @@ import {
   type NanoAvailability,
   nanoAvailability,
   type NanoSession,
-  parseToolCall,
+  type ParsedToolCall,
+  parseToolCalls,
 } from "./nano.ts";
 import { BEHAVIOR_PROMPT } from "./behavior.ts";
 import { intentDestination } from "./tools/navigation.ts";
@@ -19,6 +20,10 @@ export interface ChatMsg {
 // the transcript is persisted here and restored on the next page's mount to keep
 // the conversation continuous across pages. sessionStorage scopes it to the tab.
 const MESSAGES_KEY = "assistant.messages";
+
+// Upper bound on tool calls executed for one user message. Caps the agentic
+// chaining loop so a confused model can't run tools indefinitely.
+const MAX_TOOL_STEPS = 4;
 
 // Heuristic for the retry nudge: did the user likely want a tool? Either the
 // question contains numbers (arithmetic / summary) or the model's reply punted
@@ -41,12 +46,25 @@ export interface Assistant {
   availability: NanoAvailability | "checking";
   startDownload: () => Promise<void>;
   ask: () => Promise<void>;
+  clear: () => void;
+}
+
+// Page-specific reliability net: when the small model doesn't emit a tool call,
+// a matching phrase routes straight to the named (parameterless) tool. Mirrors
+// the built-in navigation fallback, but works for any tool a page wants to
+// guarantee — e.g. checkout's "use my recent address" / "place my order".
+export interface IntentFallback {
+  matches: (question: string) => boolean;
+  tool: string;
 }
 
 // Drive an on-device assistant for a given set of tools. Pass a STABLE array
 // (build it with useMemo in the page island) — the hook re-registers tools when
 // the array identity changes.
-export function useAssistant(tools: WebMcpTool[]): Assistant {
+export function useAssistant(
+  tools: WebMcpTool[],
+  fallbacks: IntentFallback[] = [],
+): Assistant {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
@@ -152,28 +170,66 @@ export function useAssistant(tools: WebMcpTool[]): Assistant {
       }
 
       const answer = await sessionRef.current.prompt(q);
-      let call = parseToolCall(answer, tools);
+      let calls = parseToolCalls(answer, tools);
 
       // Small models sometimes acknowledge a tool without emitting the call
       // ("I need to use the calculator tool"). If it looks like a tool was
       // needed (and it isn't a navigation question), nudge once for the bare
       // call and parse again. This is general — it works for any tool.
-      if (!call && !intentDestination(q) && looksLikeToolNeeded(q, answer)) {
+      if (!calls.length && !intentDestination(q) && looksLikeToolNeeded(q, answer)) {
         const retry = await sessionRef.current.prompt(
           "Call the tool needed for my last request now. Output ONLY the call " +
             "on a single line, like toolName(arg=value, ...). No other words.",
         );
-        call = parseToolCall(retry, tools);
+        calls = parseToolCalls(retry, tools);
       }
 
-      // 1) A tool call (first try or after the nudge) — run it; this also
-      //    updates the page UI via the tool.
-      if (call) {
-        push("bot", String(await call.tool.execute(call.args)));
+      // 1) Tool calls — run them, then keep asking the model whether another
+      //    tool is needed to finish the request, so a single message can chain
+      //    steps ("use my address AND place the order"). The model's session is
+      //    stateful, so each continuation prompt sees the original request and
+      //    the results so far. Bounded by MAX_STEPS, and a per-call signature
+      //    guard stops the model from re-running the same call in a loop.
+      if (calls.length) {
+        const ran = new Set<string>();
+        const sig = (c: ParsedToolCall) => c.tool.name + JSON.stringify(c.args);
+        for (let step = 0; step < MAX_TOOL_STEPS && calls.length; step++) {
+          let didRun = false;
+          for (const call of calls) {
+            if (ran.has(sig(call))) continue;
+            ran.add(sig(call));
+            push("bot", String(await call.tool.execute(call.args)));
+            didRun = true;
+          }
+          // Nothing new ran this round → the model is repeating itself; stop.
+          if (!didRun) break;
+          // Continue ONLY for things the user explicitly asked for. Re-state the
+          // original request and forbid volunteering extra actions, so the model
+          // doesn't tack on "helpful" steps like navigating to the cart.
+          const next = await sessionRef.current.prompt(
+            `My original request was: "${q}". Is there a part of THAT request ` +
+              "that has not been done yet? If so, output ONLY the tool call for " +
+              "it on a single line. If everything I asked for is done, reply " +
+              "with a short confirmation and NO tool call. Do NOT take any " +
+              "action I did not explicitly ask for (e.g. do not navigate).",
+          );
+          calls = parseToolCalls(next, tools).filter((c) => !ran.has(sig(c)));
+        }
         return;
       }
 
-      // 2) Reliability net: route obvious navigation questions even if the
+      // 2a) Page-specific reliability net: a phrase the page registered should
+      //     route straight to its tool even if the model didn't emit the call.
+      for (const fb of fallbacks) {
+        if (!fb.matches(q)) continue;
+        const tool = tools.find((t) => t.name === fb.tool);
+        if (tool) {
+          push("bot", String(await tool.execute({})));
+          return;
+        }
+      }
+
+      // 2b) Reliability net: route obvious navigation questions even if the
       //    model didn't emit navigate — but only if this page HAS a navigate
       //    tool and we're not already on the target page.
       const dest = intentDestination(q);
@@ -195,6 +251,15 @@ export function useAssistant(tools: WebMcpTool[]): Assistant {
     }
   }
 
+  // Wipe the transcript AND drop the model session so its conversation memory
+  // starts fresh — otherwise the model would still "remember" the cleared turns.
+  // The next ask() recreates the session. The messages→storage effect persists
+  // the empty transcript, so the clear survives navigation too.
+  function clear() {
+    setMessages([]);
+    sessionRef.current = null;
+  }
+
   return {
     messages,
     question,
@@ -206,5 +271,6 @@ export function useAssistant(tools: WebMcpTool[]): Assistant {
     availability,
     startDownload,
     ask,
+    clear,
   };
 }

@@ -21,8 +21,10 @@ export function makeCatalogTools(h: CatalogHandlers): WebMcpTool[] {
     {
       name: "search_products",
       description:
-        "Search products by keyword in their name or category. Use when the " +
-        "user names a product or a kind of product.",
+        "Find and SHOW products matching a keyword in their name or category. " +
+        "Use ONLY when the user wants to find, show, browse, or look for " +
+        "products (e.g. \"show me headphones\"). Do NOT use this to add or buy " +
+        "something — use add_to_cart for that.",
       inputSchema: {
         type: "object",
         properties: {
