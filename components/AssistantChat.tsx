@@ -181,32 +181,17 @@ function UnsupportedBody() {
         This assistant runs entirely on your device 🔒
       </p>
       <p class="text-gray-600">
-        It's powered by Chrome's new{" "}
-        <span class="font-medium text-gray-800">WebMCP</span> + on-device{" "}
+        It's powered by Chrome's built-in on-device AI —{" "}
         <span class="font-medium text-gray-800">Gemini Nano</span>{" "}
-        APIs, still in early preview. To drive the store by chat, you'll need:
+        via the new WebMCP + Prompt APIs, still in early preview. To drive the
+        store by chat, open this page in{" "}
+        <span class="font-medium text-gray-800">
+          Chrome 146+ on a desktop or laptop
+        </span>. No extra setup needed.
       </p>
-      <ul class="flex flex-col gap-2">
-        <li class="flex gap-2">
-          <span class="text-emerald-600">1.</span>
-          <span>
-            <span class="font-medium">Chrome 146+</span> on desktop
-          </span>
-        </li>
-        <li class="flex gap-2">
-          <span class="text-emerald-600">2.</span>
-          <span>
-            Enable the flag{" "}
-            <code class="rounded bg-gray-200 px-1 py-0.5 text-[11px] text-gray-800 break-all select-all">
-              chrome://flags/#enable-webmcp-testing
-            </code>{" "}
-            and the Prompt API (Gemini Nano), then relaunch
-          </span>
-        </li>
-      </ul>
       <p class="mt-1 text-xs text-gray-500">
-        No supported browser handy? There's a short video of it in action in the
-        post. Meanwhile, feel free to browse the store — everything else works
+        On another browser? There's a short video of it in action in the post.
+        Meanwhile, feel free to browse the store — everything else works
         normally.
       </p>
     </div>

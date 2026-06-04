@@ -31,14 +31,13 @@ out") into those tool calls.
 
 ## Requirements
 
-To drive the store by chat you need:
+The AI assistant needs **Chrome 146+ on desktop** (Mac/Windows/Linux), which
+ships the on-device Prompt API (Gemini Nano) it runs on. No flags or extra setup
+required — on many machines the Nano model is already downloaded; if not, the
+chat asks before downloading it.
 
-1. **Chrome 146+** on desktop
-2. Enable `chrome://flags/#enable-webmcp-testing` and the Prompt API (Gemini
-   Nano), then relaunch
-
-On many Chrome desktops the Nano model is already downloaded, so there's nothing
-extra to install.
+Other browsers and mobile still get the full store — only the chat assistant is
+gated.
 
 ## Run it locally
 

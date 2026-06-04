@@ -164,9 +164,8 @@ export function useAssistant(
         push(
           "bot",
           "On-device Gemini Nano isn't available in this browser. To use the " +
-            "assistant, open this page in Chrome 146+ on desktop with " +
-            "chrome://flags/#enable-webmcp-testing and the Prompt API enabled. " +
-            "The store itself still works without it.",
+            "assistant, open this page in Chrome 146+ on a desktop or laptop — " +
+            "no extra setup needed. The store itself still works without it.",
         );
         return;
       }
