@@ -27,12 +27,16 @@ export function AssistantChat(
   const [open, setOpen] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
 
-  // Keep the transcript pinned to the latest message.
+  // Keep the transcript pinned to the latest message. `a.availability` is in the
+  // deps so that after a navigation — where the restored messages arrive BEFORE
+  // the chat body mounts (it only renders once availability resolves to
+  // "available") — the scroll runs when the body finally mounts, instead of the
+  // transcript being left scrolled to the top.
   useEffect(() => {
     if (open && logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
     }
-  }, [a.messages, a.busy, open]);
+  }, [a.messages, a.busy, open, a.availability]);
 
   // Restore the open state from before a navigation (done in an effect, not the
   // initial value, to avoid an SSR/client hydration mismatch), then keep it in
@@ -85,14 +89,26 @@ export function AssistantChat(
                 On-device · Gemini Nano
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close chat"
-              class="text-gray-300 hover:text-white text-xl leading-none"
-            >
-              ×
-            </button>
+            <div class="flex items-center gap-3">
+              {ready && a.messages.length > 0 && (
+                <button
+                  type="button"
+                  onClick={a.clear}
+                  aria-label="Clear conversation"
+                  class="text-[11px] text-gray-300 hover:text-white underline underline-offset-2"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close chat"
+                class="text-gray-300 hover:text-white text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
           </header>
 
           {ready

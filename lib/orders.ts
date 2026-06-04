@@ -12,12 +12,23 @@ export interface OrderItem {
   price: number;
 }
 
+// Shipping details captured at checkout. Stored on the order so a later
+// checkout can reuse the most recently used address.
+export interface ShippingAddress {
+  fullName: string;
+  email: string;
+  address: string;
+  city: string;
+  zip: string;
+}
+
 export interface Order {
   id: string;
   date: string; // ISO date (yyyy-mm-dd)
   status: OrderStatus;
   items: OrderItem[];
   total: number;
+  shipping?: ShippingAddress; // optional — older persisted orders won't have it
 }
 
 const KEY = "webmcp-orders";
@@ -33,6 +44,13 @@ export const SEED_ORDERS: Order[] = [
       { id: "p11", name: "Volt USB-C Charger", qty: 2, price: 25 },
     ],
     total: 299,
+    shipping: {
+      fullName: "Ada Lovelace",
+      email: "ada@example.com",
+      address: "12 Analytical Ave",
+      city: "London",
+      zip: "EC1A 1BB",
+    },
   },
   {
     id: "ORD-1042",
@@ -91,6 +109,12 @@ export function readOrders(): Order[] {
 
 export function addOrder(order: Order) {
   writeJson(KEY, [order, ...readOrders()]);
+}
+
+// The shipping address from the most recent order that has one. readOrders()
+// returns newest-first, so the first match is the most recently used address.
+export function latestShippingAddress(): ShippingAddress | undefined {
+  return readOrders().find((o) => o.shipping)?.shipping;
 }
 
 export function findOrder(query: string): Order | undefined {

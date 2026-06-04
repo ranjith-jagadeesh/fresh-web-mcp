@@ -131,8 +131,20 @@ export function parseToolCall(
   text: string,
   tools: WebMcpTool[],
 ): ParsedToolCall | null {
+  return parseToolCalls(text, tools)[0] ?? null;
+}
+
+// Like parseToolCall, but returns EVERY call found in the response, in the order
+// they appear. A single message can ask for several things ("use my address and
+// place the order"), and the model sometimes emits both calls — the caller runs
+// them in sequence. Returns [] when there's no call to find.
+export function parseToolCalls(
+  text: string,
+  tools: WebMcpTool[],
+): ParsedToolCall[] {
   // 1) JSON form: {"name": "add", "arguments": { ... }} (also parameters/args).
   //    Greedy (first "{" to last "}") so a nested arguments object is included.
+  //    The model emits at most one JSON object, so this yields a single call.
   const jsonMatch = text.includes('"name"') ? text.match(/\{[\s\S]*\}/) : null;
   if (jsonMatch) {
     try {
@@ -140,18 +152,22 @@ export function parseToolCall(
       const tool = tools.find((t) => t.name === obj.name);
       if (tool) {
         const args = obj.arguments ?? obj.parameters ?? obj.args ?? {};
-        return { tool, args };
+        return [{ tool, args }];
       }
     } catch { /* not valid JSON — fall through to call syntax */ }
   }
 
   // 2) Call syntax: name(...) anywhere, incl. inside a ```tool_code``` fence or a
-  //    print(...) wrapper. First tool whose name appears as a call wins.
+  //    print(...) wrapper. Collect every occurrence of every tool, then return
+  //    them ordered by where they appear so a multi-step request runs in order.
+  const found: { index: number; call: ParsedToolCall }[] = [];
   for (const tool of tools) {
-    const m = text.match(new RegExp(tool.name + "\\s*\\(([^)]*)\\)"));
-    if (m) return { tool, args: parseArgs(m[1], tool) };
+    const re = new RegExp(tool.name + "\\s*\\(([^)]*)\\)", "g");
+    for (let m = re.exec(text); m; m = re.exec(text)) {
+      found.push({ index: m.index, call: { tool, args: parseArgs(m[1], tool) } });
+    }
   }
-  return null;
+  return found.sort((a, b) => a.index - b.index).map((f) => f.call);
 }
 
 // Parse the inside of name(...) into named args. Handles positional ("19, 23"),
