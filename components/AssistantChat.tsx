@@ -12,8 +12,11 @@ const OPEN_KEY = "assistant.open";
 // overlay, so it doesn't take layout space on the page.
 //
 // Visibility rules:
-//   • "checking"/"unavailable" → render nothing (no device support, or a failed
-//     download — we don't want a dead chat bubble on the page).
+//   • "checking"     → render nothing (we don't yet know if the model can run).
+//   • "unavailable"  → launcher shows; opening reveals a short "what you need"
+//     panel (Chrome 146 + flag). The public demo URL is shared widely, so most
+//     visitors land here — silently hiding the widget would make the page look
+//     broken and bury the whole point of the demo.
 //   • supported but not ready  → launcher shows; opening reveals download status.
 //   • "available"              → launcher shows; opening reveals the chat window.
 export function AssistantChat(
@@ -53,19 +56,22 @@ export function AssistantChat(
     } catch { /* storage unavailable — non-fatal */ }
   }, [open]);
 
-  // Don't render the assistant at all until we know the model can run here.
-  if (a.availability === "checking" || a.availability === "unavailable") {
+  // While we're still probing, render nothing — the state resolves in a tick and
+  // we'd rather not flash a launcher that might immediately change meaning.
+  if (a.availability === "checking") {
     return null;
   }
 
   const ready = a.availability === "available";
+  const unsupported = a.availability === "unavailable";
 
   function toggle() {
     setOpen((o) => {
       const next = !o;
       // Opening before the model is ready doubles as the user gesture some
-      // browsers require to (re)start the background download.
-      if (next && !ready) a.startDownload();
+      // browsers require to (re)start the background download. No point retrying
+      // when the browser simply can't run it (unsupported) — just show the panel.
+      if (next && !ready && !unsupported) a.startDownload();
       return next;
     });
   }
@@ -83,10 +89,16 @@ export function AssistantChat(
               <span class="flex items-center gap-1.5 text-[11px] text-gray-300">
                 <span
                   class={`inline-block w-2 h-2 rounded-full ${
-                    ready ? "bg-emerald-400" : "bg-amber-400 animate-pulse"
+                    ready
+                      ? "bg-emerald-400"
+                      : unsupported
+                      ? "bg-gray-400"
+                      : "bg-amber-400 animate-pulse"
                   }`}
                 />
-                On-device · Gemini Nano
+                {unsupported
+                  ? "Requires Chrome desktop"
+                  : "On-device · Gemini Nano"}
               </span>
             </div>
             <div class="flex items-center gap-3">
@@ -113,6 +125,8 @@ export function AssistantChat(
 
           {ready
             ? <ChatBody assistant={a} hint={props.hint} logRef={logRef} />
+            : unsupported
+            ? <UnsupportedBody />
             : <DownloadingBody assistant={a} />}
         </div>
       )}
@@ -128,11 +142,61 @@ export function AssistantChat(
         {!open && (
           <span
             class={`absolute top-1 right-1 w-3 h-3 rounded-full border-2 border-emerald-600 ${
-              ready ? "bg-emerald-300" : "bg-amber-300 animate-pulse"
+              ready
+                ? "bg-emerald-300"
+                : unsupported
+                ? "bg-gray-300"
+                : "bg-amber-300 animate-pulse"
             }`}
           />
         )}
       </button>
+    </div>
+  );
+}
+
+// Shown when this browser can't run the on-device model — i.e. it lacks Chrome's
+// WebMCP / Prompt API preview. Most visitors to the public demo land here, so
+// instead of hiding the widget we explain what the demo is and what's needed to
+// drive it live (and reassure them the rest of the store still works).
+function UnsupportedBody() {
+  return (
+    <div
+      class="flex flex-col gap-3 overflow-y-auto p-5 bg-gray-50 text-sm text-gray-700"
+      style="height: min(55vh, 26rem);"
+    >
+      <p class="font-medium text-gray-900">
+        This assistant runs entirely on your device 🔒
+      </p>
+      <p class="text-gray-600">
+        It's powered by Chrome's new{" "}
+        <span class="font-medium text-gray-800">WebMCP</span> + on-device{" "}
+        <span class="font-medium text-gray-800">Gemini Nano</span>{" "}
+        APIs, still in early preview. To drive the store by chat, you'll need:
+      </p>
+      <ul class="flex flex-col gap-2">
+        <li class="flex gap-2">
+          <span class="text-emerald-600">1.</span>
+          <span>
+            <span class="font-medium">Chrome 146+</span> on desktop
+          </span>
+        </li>
+        <li class="flex gap-2">
+          <span class="text-emerald-600">2.</span>
+          <span>
+            Enable the flag{" "}
+            <code class="rounded bg-gray-200 px-1 py-0.5 text-[11px] text-gray-800 break-all select-all">
+              chrome://flags/#enable-webmcp-testing
+            </code>{" "}
+            and the Prompt API (Gemini Nano), then relaunch
+          </span>
+        </li>
+      </ul>
+      <p class="mt-1 text-xs text-gray-500">
+        No supported browser handy? There's a short video of it in action in the
+        post. Meanwhile, feel free to browse the store — everything else works
+        normally.
+      </p>
     </div>
   );
 }
