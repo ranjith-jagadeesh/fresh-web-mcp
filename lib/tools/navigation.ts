@@ -1,4 +1,5 @@
 import type { WebMcpTool } from "../webmcp.ts";
+import { argString } from "./args.ts";
 
 // Central registry of pages. The navigate tool, the intent fallback, and the
 // nav bar all read this, so adding a page in one place wires up all three.
@@ -72,9 +73,7 @@ export function makeNavigateTool(): WebMcpTool {
       required: ["destination"],
     },
     execute: (args) => {
-      const raw = String(
-        args.destination ?? args.page ?? Object.values(args)[0] ?? "",
-      ).toLowerCase();
+      const raw = argString(args, "destination").toLowerCase();
       const page = PAGES.find((p) => raw.includes(p.slug)) ??
         PAGES.find((p) => p.slug === "home")!;
       if (typeof globalThis.location !== "undefined") {

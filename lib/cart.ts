@@ -3,6 +3,7 @@
 // useCart() on the page (cart list, header badge, etc.) updates live.
 
 import { findProductById, type Product } from "./catalog.ts";
+import { readJson, writeJson } from "./storage.ts";
 
 export interface CartItem {
   id: string;
@@ -13,17 +14,11 @@ const KEY = "webmcp-cart";
 export const CART_EVENT = "cart-changed";
 
 export function readCart(): CartItem[] {
-  if (typeof localStorage === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as CartItem[];
-  } catch {
-    return [];
-  }
+  return readJson<CartItem[]>(KEY, []);
 }
 
 function writeCart(items: CartItem[]) {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(items));
+  writeJson(KEY, items);
   dispatchEvent(new Event(CART_EVENT));
 }
 

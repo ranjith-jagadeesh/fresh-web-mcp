@@ -1,11 +1,7 @@
 import { addToCart, clearCart, removeFromCart, setQuantity } from "../cart.ts";
 import { findProduct, type Product } from "../catalog.ts";
 import type { WebMcpTool } from "../webmcp.ts";
-
-function resolveQty(value: unknown, fallback = 1): number {
-  const n = Math.floor(Number(value));
-  return n > 0 ? n : fallback;
-}
+import { argString, qtyArg } from "./args.ts";
 
 // add_to_cart by product name — used on the catalog (listing) page where many
 // products are visible.
@@ -30,9 +26,10 @@ export function addByNameTool(): WebMcpTool {
       required: ["product"],
     },
     execute: (args) => {
-      const p = findProduct(String(args.product ?? ""));
-      if (!p) return `No product found matching "${args.product}".`;
-      const qty = resolveQty(args.quantity);
+      const product = argString(args, "product");
+      const p = findProduct(product);
+      if (!p) return `No product found matching "${product}".`;
+      const qty = qtyArg(args.quantity);
       addToCart(p.id, qty);
       return `Added ${qty} × ${p.name} to the cart.`;
     },
@@ -57,7 +54,7 @@ export function addThisProductTool(product: Product): WebMcpTool {
       required: [],
     },
     execute: (args) => {
-      const qty = resolveQty(args.quantity);
+      const qty = qtyArg(args.quantity);
       addToCart(product.id, qty);
       return `Added ${qty} × ${product.name} to the cart.`;
     },
@@ -86,9 +83,10 @@ export function cartManagementTools(): WebMcpTool[] {
         required: ["product", "quantity"],
       },
       execute: (args) => {
-        const p = findProduct(String(args.product ?? ""));
-        if (!p) return `No product found matching "${args.product}".`;
-        const qty = Math.max(0, Math.floor(Number(args.quantity)));
+        const product = argString(args, "product");
+        const p = findProduct(product);
+        if (!p) return `No product found matching "${product}".`;
+        const qty = qtyArg(args.quantity, 0);
         setQuantity(p.id, qty);
         return qty === 0
           ? `Removed ${p.name} from the cart.`
@@ -110,10 +108,9 @@ export function cartManagementTools(): WebMcpTool[] {
         required: ["product"],
       },
       execute: (args) => {
-        const p = findProduct(
-          String(args.product ?? Object.values(args)[0] ?? ""),
-        );
-        if (!p) return `No product found matching "${args.product}".`;
+        const product = argString(args, "product");
+        const p = findProduct(product);
+        if (!p) return `No product found matching "${product}".`;
         removeFromCart(p.id);
         return `Removed ${p.name} from the cart.`;
       },

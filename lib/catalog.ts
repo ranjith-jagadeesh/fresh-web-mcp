@@ -348,8 +348,12 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+// Index built once at module load so id lookups (one per cart line on every
+// cart render) are O(1) instead of scanning the whole catalog each time.
+const BY_ID = new Map(PRODUCTS.map((p) => [p.id, p]));
+
 export function findProductById(id: string): Product | undefined {
-  return PRODUCTS.find((p) => p.id === id);
+  return BY_ID.get(id);
 }
 
 // Resolve a free-text reference ("the running shoes", "p09") to a product.

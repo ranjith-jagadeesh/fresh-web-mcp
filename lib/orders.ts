@@ -1,6 +1,8 @@
 // Order history. Seeded with test data; real orders placed at checkout are
 // prepended and persisted to localStorage.
 
+import { readJson, writeJson } from "./storage.ts";
+
 export type OrderStatus = "Processing" | "Shipped" | "Delivered" | "Cancelled";
 
 export interface OrderItem {
@@ -84,18 +86,11 @@ export const SEED_ORDERS: Order[] = [
 ];
 
 export function readOrders(): Order[] {
-  if (typeof localStorage === "undefined") return SEED_ORDERS;
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Order[]) : SEED_ORDERS;
-  } catch {
-    return SEED_ORDERS;
-  }
+  return readJson<Order[]>(KEY, SEED_ORDERS);
 }
 
 export function addOrder(order: Order) {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify([order, ...readOrders()]));
+  writeJson(KEY, [order, ...readOrders()]);
 }
 
 export function findOrder(query: string): Order | undefined {

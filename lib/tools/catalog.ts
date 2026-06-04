@@ -6,6 +6,7 @@ import {
   type SortBy,
 } from "../catalog.ts";
 import type { WebMcpTool } from "../webmcp.ts";
+import { argString } from "./args.ts";
 
 // Callbacks into the products page's view state. The tools don't hold the
 // product list — they just tell the page how to change what's shown.
@@ -33,7 +34,7 @@ export function makeCatalogTools(h: CatalogHandlers): WebMcpTool[] {
         required: ["query"],
       },
       execute: (args) => {
-        const q = String(args.query ?? Object.values(args)[0] ?? "");
+        const q = argString(args, "query");
         h.onSearch(q);
         return `Showing results for "${q}".`;
       },
@@ -102,9 +103,7 @@ export function makeCatalogTools(h: CatalogHandlers): WebMcpTool[] {
         required: ["by"],
       },
       execute: (args) => {
-        const by = normalizeSort(
-          String(args.by ?? Object.values(args)[0] ?? ""),
-        );
+        const by = normalizeSort(argString(args, "by"));
         h.onSort(by);
         return `Sorted by ${by}.`;
       },

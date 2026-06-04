@@ -1,6 +1,7 @@
 import { addToCart } from "../cart.ts";
 import { findOrder } from "../orders.ts";
 import type { WebMcpTool } from "../webmcp.ts";
+import { argString } from "./args.ts";
 
 // Order-history tools — used on the orders page. `onReorder` lets the page
 // react (e.g. surface a "view cart" hint) after items are re-added.
@@ -18,8 +19,9 @@ export function makeOrderTools(onReorder?: () => void): WebMcpTool[] {
         required: ["order"],
       },
       execute: (args) => {
-        const o = findOrder(String(args.order ?? Object.values(args)[0] ?? ""));
-        if (!o) return `No order found matching "${args.order}".`;
+        const order = argString(args, "order");
+        const o = findOrder(order);
+        if (!o) return `No order found matching "${order}".`;
         return `${o.id} is ${o.status} — ${o.items.length} item(s), $${o.total}.`;
       },
       annotations: { readOnlyHint: true },
@@ -36,8 +38,9 @@ export function makeOrderTools(onReorder?: () => void): WebMcpTool[] {
         required: ["order"],
       },
       execute: (args) => {
-        const o = findOrder(String(args.order ?? Object.values(args)[0] ?? ""));
-        if (!o) return `No order found matching "${args.order}".`;
+        const order = argString(args, "order");
+        const o = findOrder(order);
+        if (!o) return `No order found matching "${order}".`;
         for (const item of o.items) addToCart(item.id, item.qty);
         onReorder?.();
         return `Re-added ${o.items.length} item(s) from ${o.id} to your cart.`;

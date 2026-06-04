@@ -23,12 +23,14 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState<SortBy>("rating");
   const { addToCart } = useCart();
 
+  const setFilter = (patch: Filters) => setFilters((f) => ({ ...f, ...patch }));
+
   // Tools mutate the SAME view state the manual controls use.
   const tools = useMemo(
     () => [
       ...makeCatalogTools({
         onSearch: setQuery,
-        onFilter: (patch) => setFilters((f) => ({ ...f, ...patch })),
+        onFilter: setFilter,
         onSort: setSortBy,
       }),
       addByNameTool(),
@@ -38,12 +40,16 @@ export default function ProductsPage() {
   );
   const assistant = useAssistant(tools);
 
-  const visible = sortProducts(
-    filterProducts(searchProducts(PRODUCTS, query), filters),
-    sortBy,
+  // Recompute the visible set only when an input actually changes — the
+  // search → filter → sort chain otherwise reruns on every unrelated render.
+  const visible = useMemo(
+    () =>
+      sortProducts(
+        filterProducts(searchProducts(PRODUCTS, query), filters),
+        sortBy,
+      ),
+    [query, filters, sortBy],
   );
-
-  const setFilter = (patch: Filters) => setFilters((f) => ({ ...f, ...patch }));
 
   return (
     <div class="flex flex-col gap-6">
