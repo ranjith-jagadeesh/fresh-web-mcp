@@ -17,8 +17,11 @@ const OPEN_KEY = "assistant.open";
 //     panel (Chrome 146 + flag). The public demo URL is shared widely, so most
 //     visitors land here — silently hiding the widget would make the page look
 //     broken and bury the whole point of the demo.
-//   • supported but not ready  → launcher shows; opening reveals download status.
-//   • "available"              → launcher shows; opening reveals the chat window.
+//   • "downloadable" → launcher shows; opening reveals a consent panel that asks
+//     before downloading the model — we never download just because the page
+//     loaded (a surprise multi-GB download is exactly the thing people resent).
+//   • "downloading"  → launcher shows; opening reveals download progress.
+//   • "available"    → launcher shows; opening reveals the chat window.
 export function AssistantChat(
   props: {
     assistant: Assistant;
@@ -64,16 +67,17 @@ export function AssistantChat(
 
   const ready = a.availability === "available";
   const unsupported = a.availability === "unavailable";
+  // A download is in flight — either the user consented and we kicked it off, or
+  // Chrome already had one running and we attached to it.
+  const downloading = a.preparing || a.availability === "downloading";
+  // Supported, model not present, nothing downloading yet → ask before pulling it.
+  const needsConsent = !ready && !unsupported && !downloading;
 
+  // Opening the chat never starts a download — that only happens when the user
+  // explicitly clicks "Download" in the consent panel (which also satisfies the
+  // user-gesture some browsers require). Toggling just shows/hides the window.
   function toggle() {
-    setOpen((o) => {
-      const next = !o;
-      // Opening before the model is ready doubles as the user gesture some
-      // browsers require to (re)start the background download. No point retrying
-      // when the browser simply can't run it (unsupported) — just show the panel.
-      if (next && !ready && !unsupported) a.startDownload();
-      return next;
-    });
+    setOpen((o) => !o);
   }
 
   return (
@@ -93,7 +97,9 @@ export function AssistantChat(
                       ? "bg-emerald-400"
                       : unsupported
                       ? "bg-gray-400"
-                      : "bg-amber-400 animate-pulse"
+                      : downloading
+                      ? "bg-amber-400 animate-pulse"
+                      : "bg-amber-400"
                   }`}
                 />
                 {unsupported
@@ -127,7 +133,11 @@ export function AssistantChat(
             ? <ChatBody assistant={a} hint={props.hint} logRef={logRef} />
             : unsupported
             ? <UnsupportedBody />
-            : <DownloadingBody assistant={a} />}
+            : downloading
+            ? <DownloadingBody assistant={a} />
+            : needsConsent
+            ? <ConsentBody assistant={a} />
+            : null}
         </div>
       )}
 
@@ -146,7 +156,9 @@ export function AssistantChat(
                 ? "bg-emerald-300"
                 : unsupported
                 ? "bg-gray-300"
-                : "bg-amber-300 animate-pulse"
+                : downloading
+                ? "bg-amber-300 animate-pulse"
+                : "bg-amber-300"
             }`}
           />
         )}
@@ -196,6 +208,42 @@ function UnsupportedBody() {
         No supported browser handy? There's a short video of it in action in the
         post. Meanwhile, feel free to browse the store — everything else works
         normally.
+      </p>
+    </div>
+  );
+}
+
+// Shown when the model is supported but not yet on this device. We ask before
+// downloading rather than pulling a multi-GB model the moment the page loads —
+// the user opted into the chat, not into a surprise download.
+function ConsentBody(props: { assistant: Assistant }) {
+  return (
+    <div
+      class="flex flex-col gap-3 overflow-y-auto p-5 bg-gray-50 text-sm text-gray-700"
+      style="height: min(55vh, 26rem);"
+    >
+      <p class="font-medium text-gray-900">
+        Set up the assistant 🔒
+      </p>
+      <p class="text-gray-600">
+        It runs <span class="font-medium text-gray-800">Gemini Nano</span>{" "}
+        entirely in your browser — no server, no API key, nothing leaves your
+        device. Chrome ships this model to many desktops automatically, but it's
+        not on this one yet.
+      </p>
+      <p class="text-gray-600">
+        Want to download it now? It's a one-time download (often a few GB);
+        after that the assistant works instantly.
+      </p>
+      <button
+        type="button"
+        onClick={() => props.assistant.startDownload()}
+        class="mt-1 self-start rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+      >
+        Download and enable
+      </button>
+      <p class="text-[11px] text-gray-400">
+        You can keep browsing the store while it downloads.
       </p>
     </div>
   );
