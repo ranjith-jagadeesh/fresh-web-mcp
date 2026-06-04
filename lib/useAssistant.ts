@@ -163,8 +163,10 @@ export function useAssistant(
       if (!sessionRef.current) {
         push(
           "bot",
-          "On-device Gemini Nano isn't available here. Use Chrome 138+ with " +
-            "the Prompt API enabled — the buttons and WebMCP tools still work.",
+          "On-device Gemini Nano isn't available in this browser. To use the " +
+            "assistant, open this page in Chrome 146+ on desktop with " +
+            "chrome://flags/#enable-webmcp-testing and the Prompt API enabled. " +
+            "The store itself still works without it.",
         );
         return;
       }
@@ -176,7 +178,9 @@ export function useAssistant(
       // ("I need to use the calculator tool"). If it looks like a tool was
       // needed (and it isn't a navigation question), nudge once for the bare
       // call and parse again. This is general — it works for any tool.
-      if (!calls.length && !intentDestination(q) && looksLikeToolNeeded(q, answer)) {
+      if (
+        !calls.length && !intentDestination(q) && looksLikeToolNeeded(q, answer)
+      ) {
         const retry = await sessionRef.current.prompt(
           "Call the tool needed for my last request now. Output ONLY the call " +
             "on a single line, like toolName(arg=value, ...). No other words.",
