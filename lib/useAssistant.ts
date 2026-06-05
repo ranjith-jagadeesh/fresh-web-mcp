@@ -198,12 +198,20 @@ export function useAssistant(
         const sig = (c: ParsedToolCall) => c.tool.name + JSON.stringify(c.args);
         for (let step = 0; step < MAX_TOOL_STEPS && calls.length; step++) {
           let didRun = false;
+          let navigated = false;
           for (const call of calls) {
             if (ran.has(sig(call))) continue;
             ran.add(sig(call));
             push("bot", String(await call.tool.execute(call.args)));
             didRun = true;
+            if (call.tool.name === "navigate") navigated = true;
           }
+          // Navigation is terminal: navigate schedules a full page reload, so the
+          // current page (and its tools) is about to be torn down. Stop here —
+          // re-prompting the model now would let it tack on actions against a
+          // dying page (e.g. clear_cart while "checking out"), which then run in
+          // the brief window before the reload. Once we're leaving, we're done.
+          if (navigated) return;
           // Nothing new ran this round → the model is repeating itself; stop.
           if (!didRun) break;
           // Continue ONLY for things the user explicitly asked for. Re-state the
