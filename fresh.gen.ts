@@ -12,6 +12,7 @@ import * as $greet_name_ from "./routes/greet/[name].tsx";
 import * as $index from "./routes/index.tsx";
 import * as $orders from "./routes/orders.tsx";
 import * as $product_id_ from "./routes/product/[id].tsx";
+import * as $AboutAssistant from "./islands/AboutAssistant.tsx";
 import * as $CartBadge from "./islands/CartBadge.tsx";
 import * as $CartPage from "./islands/CartPage.tsx";
 import * as $CheckoutPage from "./islands/CheckoutPage.tsx";
@@ -34,6 +35,7 @@ const manifest = {
     "./routes/product/[id].tsx": $product_id_,
   },
   islands: {
+    "./islands/AboutAssistant.tsx": $AboutAssistant,
     "./islands/CartBadge.tsx": $CartBadge,
     "./islands/CartPage.tsx": $CartPage,
     "./islands/CheckoutPage.tsx": $CheckoutPage,

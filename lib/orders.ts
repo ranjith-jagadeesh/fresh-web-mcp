@@ -111,10 +111,19 @@ export function addOrder(order: Order) {
   writeJson(KEY, [order, ...readOrders()]);
 }
 
-// The shipping address from the most recent order that has one. readOrders()
-// returns newest-first, so the first match is the most recently used address.
+// True only for a shipping address with real content. Orders can carry an
+// all-empty shipping object (e.g. the assistant's place_order tool bypasses the
+// form's `required` validation), and such a blank must not be offered as a
+// "recent address" — it would fill the form with empty strings.
+export function hasUsableAddress(a?: ShippingAddress): a is ShippingAddress {
+  return !!a && a.fullName.trim() !== "" && a.address.trim() !== "";
+}
+
+// The shipping address from the most recent order that has a usable one.
+// readOrders() returns newest-first, so the first match is the most recently
+// used address — skipping any blank ones a quick checkout may have saved.
 export function latestShippingAddress(): ShippingAddress | undefined {
-  return readOrders().find((o) => o.shipping)?.shipping;
+  return readOrders().find((o) => hasUsableAddress(o.shipping))?.shipping;
 }
 
 export function findOrder(query: string): Order | undefined {
