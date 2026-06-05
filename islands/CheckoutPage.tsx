@@ -7,6 +7,7 @@ import {
 } from "preact/hooks";
 import {
   addOrder,
+  hasUsableAddress,
   type Order,
   type OrderItem,
   type ShippingAddress,
@@ -16,10 +17,7 @@ import {
   makeUseRecentAddressTool,
   wantsRecentAddress,
 } from "../lib/tools/address.ts";
-import {
-  makePlaceOrderTool,
-  wantsPlaceOrder,
-} from "../lib/tools/checkout.ts";
+import { makePlaceOrderTool, wantsPlaceOrder } from "../lib/tools/checkout.ts";
 import { useAssistant } from "../lib/useAssistant.ts";
 import { useCart } from "../lib/useCart.ts";
 import { AssistantChat } from "../components/AssistantChat.tsx";
@@ -76,7 +74,9 @@ export default function CheckoutPage() {
       status: "Processing",
       items,
       total,
-      shipping: { ...form },
+      // Only persist a real address — never a blank object that would later
+      // surface as a bogus "recent address".
+      shipping: hasUsableAddress(form) ? { ...form } : undefined,
     };
     addOrder(order);
     clearCart();
@@ -166,6 +166,19 @@ export default function CheckoutPage() {
             </a>
           </div>
         </div>
+
+        {
+          /* Keep the assistant on screen through the post-order bridge — it
+            otherwise vanishes for the ~3s before the redirect to /orders. */
+        }
+        <AssistantChat
+          assistant={assistant}
+          hint={
+            <>
+              Try <em>"open my orders"</em> or <em>"continue shopping"</em>.
+            </>
+          }
+        />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import { Head } from "$fresh/runtime.ts";
 import { PageShell } from "../components/PageShell.tsx";
+import AboutAssistant from "../islands/AboutAssistant.tsx";
 
 export default function About() {
   return (
@@ -53,6 +54,7 @@ export default function About() {
             the exact tool names — so the prompt never grows as tools are added.
           </p>
         </section>
+        <AboutAssistant />
       </PageShell>
     </>
   );

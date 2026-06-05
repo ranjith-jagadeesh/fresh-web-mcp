@@ -302,8 +302,15 @@ function ChatBody(props: {
         ))}
 
         {a.busy && (
-          <div class="self-start rounded-lg bg-white border border-gray-200 px-3 py-2 text-sm text-gray-400">
-            …
+          <div class="self-start rounded-lg bg-white border border-gray-200 px-3 py-2">
+            <span
+              class="flex items-center gap-1"
+              aria-label="Assistant is typing"
+            >
+              <span class="typing-dot inline-block w-1.5 h-1.5 rounded-full bg-gray-400" />
+              <span class="typing-dot inline-block w-1.5 h-1.5 rounded-full bg-gray-400" />
+              <span class="typing-dot inline-block w-1.5 h-1.5 rounded-full bg-gray-400" />
+            </span>
           </div>
         )}
       </div>
@@ -314,19 +321,27 @@ function ChatBody(props: {
           e.preventDefault();
           a.ask();
         }}
-        class="flex gap-2 p-3 border-t border-gray-100"
+        class="flex items-end gap-2 p-3 border-t border-gray-100"
       >
-        <input
-          type="text"
+        <textarea
+          rows={2}
           value={a.question}
-          onInput={(e) => a.setQuestion((e.target as HTMLInputElement).value)}
-          placeholder="ask me something…"
-          class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          onInput={(e) =>
+            a.setQuestion((e.target as HTMLTextAreaElement).value)}
+          onKeyDown={(e) => {
+            // Enter sends; Shift+Enter inserts a newline (multi-line composing).
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              a.ask();
+            }
+          }}
+          placeholder="ask me something…  (Shift+Enter for a new line)"
+          class="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm leading-snug focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <button
           type="submit"
           disabled={a.busy}
-          class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+          class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 shrink-0"
         >
           {a.busy ? "…" : "Send"}
         </button>
